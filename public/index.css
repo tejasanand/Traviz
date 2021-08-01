@@ -25,7 +25,6 @@ body {
 
 .intro-header {
     align-items: center;
-    background-position: 0% 10%;
     padding: 100px;
     height: 100%;
     width: 100%;
@@ -36,6 +35,8 @@ body {
     z-index: 1;
 }
 
+.intro-text {}
+
 #logo {
     position: absolute;
     width: 100%;
@@ -43,7 +44,12 @@ body {
     z-index: 0;
 }
 
-#heading {}
+#heading {
+    font-size: 48px;
+    font-weight: bolder;
+    margin: 0;
+    padding-top: 20%;
+}
 
 #subheading {
     font-size: 36px;
