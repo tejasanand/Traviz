@@ -12,7 +12,7 @@ import {
 	Geography,
 	ZoomableGroup,
 } from 'react-simple-maps';
-import { scaleQuantize, scaleLinear } from 'd3-scale';
+import { scaleQuantize, scaleLinear, scaleLog } from 'd3-scale';
 import { csv } from 'd3-fetch';
 import { createSvgIcon } from '@material-ui/core';
 
@@ -104,6 +104,7 @@ const geoUrl = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
 const MapChart = () => {
 	const [type, setType] = useState('Vaccination Rates');
 	const [data, setData] = useState([]);
+	const [colors, setColors] = useState(['orange', 'green']);
 	const [range, setRange] = useState([0, 100]);
 	const [dates, setDates] = useState(
 		getDaysArray(new Date('2021-01-12'), new Date('2021-07-30'))
@@ -113,7 +114,7 @@ const MapChart = () => {
 	);
 	const [slider, setSlider] = useState(0);
 	// let dates = getDaysArray(new Date('2021-01-12'), new Date('2021-07-30'));
-	let colorScale = scaleLinear().domain(range).range(['orange', 'green']);
+	let colorScale = scaleLinear().domain(range).range(colors);
 
 	useEffect(() => {
 		// https://www.bls.gov/lau/
@@ -133,31 +134,35 @@ const MapChart = () => {
 				csv('/us_state_vaccinations.csv').then((states) => {
 					setData(states);
 				});
+				setColors(['orange', 'green']);
 				setValueField('people_fully_vaccinated_per_hundred');
 				setDates(
 					getDaysArray(new Date('2021-01-12'), new Date('2021-07-30'))
 				);
 				break;
 			case 'Unemployment Rates':
-				// csv('/us_state_vaccinations.csv').then((states) => {
-				// 	setData(states);
-				// });
-				setValueField('unemployment_rate');
-				// setDates(getDaysArray)
-				console.log('unemployment');
-				break;
-			case 'Covid Data':
-				csv('/us-states.csv').then((states) => {
+				csv('/unemployment_rate_by_state_2021.csv').then((states) => {
 					setData(states);
 				});
-				setRange([0, 100000]);
+				setDates(['January', 'February', 'March', 'April']);
+				setValueField('unemployment_rate');
+				// setDates(getDaysArray)
+				// console.log('unemployment');
+				break;
+			case 'Covid Data':
+				setColors(['green', 'red']);
+				csv('/US-states.csv').then((states) => {
+					setData(states);
+				});
+				// setRange([0, 100000]);
 				setDates(
 					getDaysArray(new Date('2020-01-21'), new Date('2021-07-30'))
 				);
 				setValueField('cases');
 				break;
 			case 'Crime Data':
-				csv('/pivoted_crime.csv').then((states) => {
+				setColors(['green', 'red']);
+				csv('/crime_proportion.csv').then((states) => {
 					setData(states);
 				});
 				let list = [];
@@ -177,35 +182,53 @@ const MapChart = () => {
 	useEffect(() => {
 		switch (valueField) {
 			case 'people_fully_vaccinated_per_hundred':
-				setRange([0, 60]);
+				setRange([0, 70]);
+				break;
+			case 'unemployment_rate':
+				setRange([3, 8]);
+				setColors(['green', 'red']);
+				break;
+			case 'New Cases':
+				setRange([0, 0.001]);
+				break;
+			case 'New Deaths':
+				setRange([0, 0.0001]);
+				break;
+			case 'cases':
+				setRange([0, 0.2]);
+				break;
+			case 'deaths':
+				setRange([0, 0.003]);
 				break;
 			case 'aggravated-assault':
-				setRange([0, 10000]);
+				setRange([0, 0.006]);
 				break;
 			case 'burglary':
-				setRange([0, 10000]);
+				setRange([0, 0.01]);
 				break;
 			case 'larceny':
-				setRange([0, 50000]);
+				setRange([0, 0.025]);
 				break;
 			case 'motor-vehicle-theft':
-				setRange([0, 10000]);
+				setRange([0, 0.005]);
 				break;
 			case 'homicide':
-				setRange([0, 200]);
+				setRange([0, 8e-5]);
 				break;
 			case 'rape':
-				setRange([0, 1000]);
+				setRange([0, 0.0008]);
 				break;
 			case 'robbery':
-				setRange([0, 4000]);
+				setRange([0, 0.002]);
 				break;
 			case 'arson':
-				setRange([0, 500]);
+				setRange([0, 0.0004]);
 				break;
 			case 'violent-crime':
-				setRange([0, 10000]);
+				setRange([0, 0.008]);
 				break;
+			case 'property-crime':
+				setRange([0, 0.04]);
 		}
 	}, [valueField]);
 
@@ -224,7 +247,11 @@ const MapChart = () => {
 	return (
 		<div style={{ display: 'flex' }}>
 			<div className="mapContainer">
-				<p>{type} across States over time</p>
+				<p>
+					{type} across States over time adjusted by respective State
+					Population
+				</p>
+
 				<FormControl component="fieldset">
 					<FormLabel component="legend">Metric</FormLabel>
 					<RadioGroup row value={type} onChange={handleChange}>
@@ -260,7 +287,10 @@ const MapChart = () => {
 						min={0}
 						max={dates.length - 1}
 					/>
-					<h1>{dates[slider]}</h1>
+					<h3>
+						{dates[slider]}{' '}
+						{type === 'Unemployment Rates' && '2021'}
+					</h3>
 					<ComposableMap projection="geoAlbersUsa" width={800}>
 						<ZoomableGroup zoom={1}>
 							<Geographies geography={geoUrl}>
@@ -336,12 +366,22 @@ const MapChart = () => {
 							<FormControlLabel
 								value="cases"
 								control={<Radio />}
-								label="New Cases"
+								label="Cumulative Cases"
 							/>
 							<FormControlLabel
 								value="deaths"
 								control={<Radio />}
-								label="Deaths"
+								label="Cumulative Deaths"
+							/>
+							<FormControlLabel
+								value="New Cases"
+								control={<Radio />}
+								label="New Cases"
+							/>
+							<FormControlLabel
+								value="New Deaths"
+								control={<Radio />}
+								label="New Deaths"
 							/>
 						</RadioGroup>
 					</FormControl>
